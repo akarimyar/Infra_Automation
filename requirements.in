@@ -1,0 +1,6 @@
+pip-tools
+mysql-connector-python
+openpyxl
+pandas
+numpy
+xlrd

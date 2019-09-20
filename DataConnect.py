@@ -1,15 +1,16 @@
 import openpyxl
 import mysql.connector 
-import pymysql
-import xlsxwriter
+# import pymysql
+# import xlsxwriter
 import pandas as pd
 import numpy as np
 import time
+from config import db_connection_settings
 
 #Gets GAIT data from MySQL database 
 def GAIT_connect():
 
- ## // HIDDEN LOG-IN INFORMATION // ## 
+  mydb = mysql.connector.connect(**db_connection_settings, buffered=True)
 
   cursor = mydb.cursor()
   
@@ -56,6 +57,7 @@ def GAIT_connect():
   df.astype({'Fund Code':'str'}).dtypes
   mydb.close()
   return df
+
 
 #Searches through financial sheet for rows with a description containing any of the infra 'key words'  
 def search(excel_file, sheet_name):
@@ -196,7 +198,7 @@ def copyData(financial_sheet, excel_file, sheet_name):
 
       
 def main():
-  print("~~~~PROGRAM EXECTUING~~~~")
+  print("~~~~PROGRAM EXECUTING~~~~")
   excel_file = 'consolidated_infra_file.xlsx'
   financial_sheet = '8400 Infrastructure costs.xlsx'
   sheet_name = 'financial_data'
