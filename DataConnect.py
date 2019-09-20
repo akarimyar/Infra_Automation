@@ -1,19 +1,19 @@
 import openpyxl
 import mysql.connector 
-import inflect
 import pymysql
 import xlsxwriter
 import pandas as pd
 import numpy as np
+import time
 
 #Gets GAIT data from MySQL database 
 def GAIT_connect():
 
-  // hidden login-info //
+ ## // HIDDEN LOG-IN INFORMATION // ## 
 
   cursor = mydb.cursor()
   
-  sql = ( 'SELECT '
+  sql_query = ( 'SELECT '
        ' g.GrantID '
        ' , g.GrantTitle '
        ' , g.HQadmin '
@@ -50,23 +50,22 @@ def GAIT_connect():
        ' GROUP BY g.GrantID'
        ' ORDER BY g.GrantTitle')
 
-  cursor.execute(sql)
-  df = pd.read_sql_query(sql, mydb)
+  cursor.execute(sql_query)
+  df = pd.read_sql_query(sql_query, mydb)
   df['Fund Code'].replace(to_replace=[None], value = np.nan, inplace=True)
   df.astype({'Fund Code':'str'}).dtypes
   mydb.close()
   return df
 
 #Searches through financial sheet for rows with a description containing any of the infra 'key words'  
-def search(excel_file):
-  p = inflect.engine() 
+def search(excel_file, sheet_name):
 
   spreadsheet = openpyxl.load_workbook(excel_file)
 
   foundRows = []
 
   #Source Sheet: Where I pasted the financial sheet
-  sheet = spreadsheet['Sheet1']
+  sheet = spreadsheet[sheet_name]
 
   #Destination Sheet: Outputs all rows that have infra key words in their description
   paste_sheet = spreadsheet['Sheet2']
@@ -76,13 +75,19 @@ def search(excel_file):
   paste_sheet.cell(row = 1, column = 2).value = sheet.cell(row = 1, column = 14).value
   paste_sheet.cell(row = 1, column = 3).value = sheet.cell(row = 1, column = 15).value
 
-  #These are the key words that are being search in the 'Description' 
-  key_words = ['latrine', 'borehole', 'waterpoint', 'water point', 'repair', 'rehabilitation', 'construct', 'build', 'rehab', 'const', 'hand pump', 'rehab.', 'septic tank', 'supply', 'install', 'renovation']
+  #These are the key words that are being search in the 'Description' from the Financial Sheet
+  key_words = [
+    'latrine', 'borehole', 'waterpoint', 'water point', 'repair', 'rehabilitation',
+    'construct', 'build', 'rehab', 'const', 'hand pump', 'rehab.', 'renov', 'septic tank', 
+    'supply', 'install', 'renovation', 'pump station', 'sport field', 'forage', 'drilling',
+    'water tank', 'watertank', 'water network', 'health center', 'school', 'pipe', 'hospital',
+    'clinic', 'solar pump', 'water system'
+  ]
 
   for row in range(1, sheet.max_row):
     if sheet.cell(row, 14).value is not None:
       for word in key_words:
-        if ((word in sheet.cell(row, 14).value) or (word.capitalize() in sheet.cell(row, 14).value) or (word.upper() in sheet.cell(row, 14).value)) and (sheet.cell(row,15).value > 1000) and (sheet.cell(row, 40).value > 2015):
+        if ((word in sheet.cell(row, 14).value) or (word.capitalize() in sheet.cell(row, 14).value) or (word.upper() in sheet.cell(row, 14).value)) and (sheet.cell(row,15).value > 1000):
           foundRows.append(row)
           break;
 
@@ -169,14 +174,39 @@ def compare(excel_file):
 
   spreadsheet.save(excel_file)
 
+  
+def copyData(financial_sheet, excel_file, sheet_name):
+  wb1 = openpyxl.load_workbook(financial_sheet, data_only = True)
+  ws1 = wb1['Detail']
+
+  wb2 = openpyxl.load_workbook(excel_file)
+
+  if sheet_name not in wb2.sheetnames:
+    wb2.create_sheet(sheet_name)
+
+  ws2 = wb2[sheet_name]
+
+  for row in ws1:
+    for cell in row:
+        ws2[cell.coordinate].value = cell.value
+
+  ws2.delete_cols(1, 3)
+  ws2.delete_rows(1, 7)
+  wb2.save(excel_file) 
+
+      
 def main():
-  print("~~~~PROGRAM EXECTUING~~~~") 
-  excel_file = 'copy 8400 Infrastructure costs.xlsx'
+  print("~~~~PROGRAM EXECTUING~~~~")
+  excel_file = 'consolidated_infra_file.xlsx'
+  financial_sheet = '8400 Infrastructure costs.xlsx'
+  sheet_name = 'financial_data'
+  copyData(financial_sheet, excel_file, sheet_name)
   clear_sheet(excel_file)
-  search(excel_file)
+  search(excel_file, sheet_name)
   get_data(excel_file)
   compare(excel_file)
-  print("~~~~ALL DONE~~~~") 
+  print("~~~~ALL DONE~~~~")
+
   
 if __name__== "__main__":
   main()
