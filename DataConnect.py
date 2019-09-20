@@ -174,7 +174,7 @@ def compare(excel_file):
 
   spreadsheet.save(excel_file)
 
-  
+#Copies the Financial Sheet to a sheet in the consolidated workbook
 def copyData(financial_sheet, excel_file, sheet_name):
   wb1 = openpyxl.load_workbook(financial_sheet, data_only = True)
   ws1 = wb1['Detail']
